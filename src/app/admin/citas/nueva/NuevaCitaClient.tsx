@@ -1,14 +1,36 @@
 'use client'
 
 import React, { useState } from 'react'
+import { maskDocument } from '@/utils/helpers'
 import { agendarCita } from '../actions'
+import toast from 'react-hot-toast'
+import { useRouter } from 'next/navigation'
 
 interface NuevaCitaClientProps {
   pacientes: any[]
 }
 
 export default function NuevaCitaClient({ pacientes }: NuevaCitaClientProps) {
+  const router = useRouter()
   const [tipoEvento, setTipoEvento] = useState<'cita_clinica' | 'compromiso_personal'>('cita_clinica')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleSubmit = async (formData: FormData) => {
+    try {
+      setIsSubmitting(true)
+      const res = await agendarCita(formData)
+      if (res && res.success === false) {
+        toast.error(res.error || "Error al agendar cita")
+      } else {
+        toast.success("Cita agendada exitosamente")
+        router.push('/admin/citas')
+      }
+    } catch (err: any) {
+      toast.error("Error de conexión.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -38,7 +60,7 @@ export default function NuevaCitaClient({ pacientes }: NuevaCitaClientProps) {
         </button>
       </div>
 
-      <form action={agendarCita} className="p-8 space-y-6">
+      <form action={handleSubmit} className="p-8 space-y-6">
         <input type="hidden" name="tipo_evento" value={tipoEvento} />
 
         {tipoEvento === 'cita_clinica' ? (
@@ -48,7 +70,7 @@ export default function NuevaCitaClient({ pacientes }: NuevaCitaClientProps) {
               <select required name="paciente_id" className="w-full px-3 py-2 border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 dark:text-slate-900 rounded-lg shadow-sm focus:ring-[#0e787a] focus:border-[#0e787a]">
                 <option value="">Seleccione un paciente...</option>
                 {pacientes?.map(p => (
-                  <option key={p.id} value={p.id}>{p.nombre_completo} - {p.numero_documento}</option>
+                  <option key={p.id} value={p.id}>{p.nombre_completo} - {maskDocument(p.numero_documento)}</option>
                 ))}
               </select>
             </div>
@@ -114,9 +136,10 @@ export default function NuevaCitaClient({ pacientes }: NuevaCitaClientProps) {
         <div className="pt-4 border-t border-gray-200">
           <button
             type="submit"
-            className="w-full bg-[#0e787a] py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white hover:bg-[#0b5c5d]"
+            disabled={isSubmitting}
+            className="w-full bg-[#0e787a] py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white hover:bg-[#0b5c5d] disabled:opacity-50"
           >
-            {tipoEvento === 'cita_clinica' ? 'Confirmar Agendamiento' : 'Guardar Compromiso'}
+            {isSubmitting ? 'Procesando...' : (tipoEvento === 'cita_clinica' ? 'Confirmar Agendamiento' : 'Guardar Compromiso')}
           </button>
         </div>
       </form>

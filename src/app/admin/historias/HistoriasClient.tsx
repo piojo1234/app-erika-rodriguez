@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import AuditModal from '@/components/AuditModal'
+import { anularHistoria, auditarEdicionHistoria } from './actions'
 
 interface HistoriasClientProps {
   historias: any[]
@@ -10,6 +13,24 @@ interface HistoriasClientProps {
 
 export default function HistoriasClient({ historias, evolucionesCount }: HistoriasClientProps) {
   const [searchTerm, setSearchTerm] = useState('')
+  const [auditModal, setAuditModal] = useState<{isOpen: boolean, id: string, actionType: 'editar' | 'anular', isSubmitting: boolean}>({
+    isOpen: false, id: '', actionType: 'editar', isSubmitting: false
+  })
+  const router = useRouter()
+
+  const handleAuditConfirm = async (justificacion: string) => {
+    if (!auditModal.id) return
+    setAuditModal(prev => ({ ...prev, isSubmitting: true }))
+
+    if (auditModal.actionType === 'anular') {
+      await anularHistoria(auditModal.id, justificacion)
+      setAuditModal({isOpen: false, id: '', actionType: 'editar', isSubmitting: false})
+    } else {
+      await auditarEdicionHistoria(auditModal.id, justificacion)
+      setAuditModal({isOpen: false, id: '', actionType: 'editar', isSubmitting: false})
+      router.push(`/admin/historias/${auditModal.id}/editar`)
+    }
+  }
 
   const filteredHistorias = historias.filter(h => {
     const term = searchTerm.toLowerCase()
@@ -48,13 +69,17 @@ export default function HistoriasClient({ historias, evolucionesCount }: Histori
               const sesiones = evolucionesCount[historia.id] || 0
               
               return (
-                <tr key={historia.id} className="hover:bg-gray-50">
+                <tr key={historia.id} className={`hover:bg-gray-50 ${historia.estado === 'anulada' ? 'opacity-60 bg-gray-50' : ''}`}>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{nombrePaciente}</div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {nombrePaciente} {historia.estado === 'anulada' && <span className="ml-2 text-xs text-red-500 font-bold">(ANULADA)</span>}
+                    </div>
                     <div className="text-xs text-gray-500">{paciente?.tipo_documento} {paciente?.numero_documento}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(historia.updated_at).toLocaleDateString('es-CO')}
+                    <span suppressHydrationWarning>
+                      {new Date(historia.updated_at).toLocaleDateString('es-CO')}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {sesiones}
@@ -64,12 +89,26 @@ export default function HistoriasClient({ historias, evolucionesCount }: Histori
                       Ver Detalle
                     </Link>
                     <span className="text-gray-300">|</span>
-                    <Link href={`/admin/historias/${historia.id}/editar`} className="text-[#f59e0b] hover:text-[#d97706]" title="Editar Historia">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                      </svg>
-                    </Link>
-                    <span className="text-gray-300">|</span>
+                    {historia.estado !== 'anulada' && (
+                      <>
+                        <button 
+                          onClick={() => setAuditModal({isOpen: true, id: historia.id, actionType: 'editar', isSubmitting: false})}
+                          className="text-[#f59e0b] hover:text-[#d97706]" title="Editar Historia"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </button>
+                        <span className="text-gray-300">|</span>
+                        <button 
+                          onClick={() => setAuditModal({isOpen: true, id: historia.id, actionType: 'anular', isSubmitting: false})}
+                          className="text-red-500 hover:text-red-700 font-semibold" title="Anular Historia"
+                        >
+                          Anular
+                        </button>
+                        <span className="text-gray-300">|</span>
+                      </>
+                    )}
                     <Link href={`/admin/historias/${historia.id}/evolucion`} className="text-[#25D366] hover:text-[#128C7E]">
                       Evoluciones
                     </Link>
@@ -87,6 +126,17 @@ export default function HistoriasClient({ historias, evolucionesCount }: Histori
           </tbody>
         </table>
       </div>
+
+      <AuditModal
+        isOpen={auditModal.isOpen}
+        title={auditModal.actionType === 'anular' ? 'Anular Historia Clínica' : 'Editar Historia Clínica'}
+        description={auditModal.actionType === 'anular' 
+          ? 'Por favor justifique la anulación de esta historia clínica.' 
+          : 'Por favor justifique el motivo de esta modificación al documento clínico.'}
+        onConfirm={handleAuditConfirm}
+        onCancel={() => setAuditModal({isOpen: false, id: '', actionType: 'editar', isSubmitting: false})}
+        isSubmitting={auditModal.isSubmitting}
+      />
     </div>
   )
 }

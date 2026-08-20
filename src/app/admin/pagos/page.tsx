@@ -6,6 +6,9 @@ export const metadata = {
   title: 'Gestión de Pagos | Psicóloga Erika Rodríguez',
 }
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function PagosPage() {
   // Obtener pagos con datos del paciente
   const { data: pagos, error: pagosError } = await supabaseServer

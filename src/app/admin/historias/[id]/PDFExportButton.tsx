@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import PDFHistoriaTemplate from '@/components/PDFHistoriaTemplate'
+import toast from 'react-hot-toast'
 
 interface PDFExportButtonProps {
   historia: any
@@ -82,7 +83,7 @@ export default function PDFExportButton({ historia, evoluciones }: PDFExportButt
           pdf.save(filename)
         } catch (err) {
           console.error("Error generando PDF:", err)
-          alert("Error generando el documento PDF.")
+          toast.error("Error generando el documento PDF.")
         } finally {
           setGenerandoPDF(false)
           setPdfData(null)
@@ -90,7 +91,7 @@ export default function PDFExportButton({ historia, evoluciones }: PDFExportButt
       }, 800)
     } catch (err) {
       console.error(err)
-      alert("Error procesando los datos para el PDF.")
+      toast.error("Error procesando los datos para el PDF.")
       setGenerandoPDF(false)
     }
   }

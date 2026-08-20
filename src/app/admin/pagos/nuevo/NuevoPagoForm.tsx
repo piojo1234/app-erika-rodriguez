@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { maskDocument } from '@/utils/helpers'
 import { registrarPago } from './actions'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
 
 export default function NuevoPagoForm({ pacientes }: { pacientes: any[] }) {
   const [esMenor, setEsMenor] = useState(false)
@@ -32,9 +34,16 @@ export default function NuevoPagoForm({ pacientes }: { pacientes: any[] }) {
     formData.set('es_menor', esMenor ? 'true' : 'false')
 
     try {
-      await registrarPago(formData)
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Error desconocido al registrar el pago')
+      setIsSubmitting(true)
+      const res = await registrarPago(formData)
+      if (res && res.success === false) {
+        toast.error("Error registrando pago: " + res.error)
+      } else {
+        toast.success("Pago registrado exitosamente.")
+      }
+    } catch (error: any) {
+      toast.error("Error inesperado: " + error.message)
+    } finally {
       setIsSubmitting(false)
     }
   }
@@ -66,7 +75,7 @@ export default function NuevoPagoForm({ pacientes }: { pacientes: any[] }) {
                 <option value="">Selecciona un paciente...</option>
                 {pacientes?.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.nombre_completo} ({p.tipo_documento} {p.numero_documento})
+                    {p.nombre_completo} ({p.tipo_documento} {maskDocument(p.numero_documento)})
                   </option>
                 ))}
               </select>
@@ -270,7 +279,15 @@ export default function NuevoPagoForm({ pacientes }: { pacientes: any[] }) {
             disabled={isSubmitting}
             className="inline-flex justify-center py-2 px-6 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#0e787a] hover:bg-[#224252] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0e787a] disabled:opacity-50"
           >
-            {isSubmitting ? 'Registrando...' : 'Generar Recibo de Pago'}
+            {isSubmitting ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Procesando pago...
+              </>
+            ) : 'Generar Recibo de Pago'}
           </button>
         </div>
       </form>

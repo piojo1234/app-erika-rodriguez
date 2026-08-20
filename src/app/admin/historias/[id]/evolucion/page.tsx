@@ -115,7 +115,7 @@ export default async function EvolucionPage({ params }: { params: Promise<{ id: 
                 <div className="flex justify-between items-center mb-4 border-b pb-2">
                   <h3 className="font-bold text-[#224252]">Sesión N° {evol.numero_sesion}</h3>
                   <div className="text-right">
-                    <span className="text-sm text-gray-500 block">{new Date(evol.fecha_sesion).toLocaleString('es-CO')}</span>
+                    <span className="text-sm text-gray-500 block" suppressHydrationWarning>{new Date(evol.fecha_sesion).toLocaleString('es-CO')}</span>
                     {evol.asistente_sesion && (
                       <span className="text-xs font-semibold bg-blue-50 text-blue-700 px-2 py-1 rounded mt-1 inline-block">
                         Atención: {evol.asistente_sesion}

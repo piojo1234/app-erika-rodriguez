@@ -5,7 +5,10 @@ import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import PDFReciboTemplate from '@/components/PDFReciboTemplate'
 import Link from 'next/link'
-import { registrarGasto, eliminarGasto } from './actions'
+import { registrarGasto, eliminarGasto, anularPago, eliminarPago } from './actions'
+import ConfirmModal from '@/components/ConfirmModal'
+import AuditModal from '@/components/AuditModal'
+import toast from 'react-hot-toast'
 
 interface PagosClientProps {
   pagos: any[]
@@ -16,6 +19,9 @@ interface PagosClientProps {
 export default function PagosClient({ pagos, pacientes, gastos }: PagosClientProps) {
   const [tab, setTab] = useState<'ingresos' | 'gastos'>('ingresos')
   const [showGastoModal, setShowGastoModal] = useState(false)
+  const [confirmModal, setConfirmModal] = useState<{isOpen: boolean, id: string}>({isOpen: false, id: ''})
+  const [confirmPagoModal, setConfirmPagoModal] = useState<{isOpen: boolean, id: string}>({isOpen: false, id: ''})
+  const [auditModal, setAuditModal] = useState<{isOpen: boolean, id: string, isSubmitting: boolean}>({isOpen: false, id: '', isSubmitting: false})
   
   const [generandoPDF, setGenerandoPDF] = useState<string | null>(null)
   const [pdfData, setPdfData] = useState<{ pago: any, paciente: any, logoBase64: string } | null>(null)
@@ -47,11 +53,11 @@ export default function PagosClient({ pagos, pacientes, gastos }: PagosClientPro
   }
 
   const handleWhatsApp = (telefono: string, pago: any, pacienteNombre: string) => {
-    if (!telefono) {
-      alert("El paciente no tiene un número de teléfono registrado.");
+    const telClean = telefono ? telefono.replace(/\D/g, '') : '';
+    if (!telClean) {
+      toast.error("El paciente no tiene un número de teléfono registrado.");
       return;
     }
-    const telClean = telefono.replace(/\D/g, '');
     const finalTel = telClean.length === 10 ? `57${telClean}` : telClean;
     
     const montoFormateado = new Intl.NumberFormat('es-CO', { 
@@ -107,7 +113,7 @@ export default function PagosClient({ pagos, pacientes, gastos }: PagosClientPro
           pdf.save(`${pago.numero_recibo}.pdf`)
         } catch (err) {
           console.error("Error generando PDF:", err)
-          alert("Error generando el documento PDF.")
+          toast.error("Error generando el documento PDF.")
         } finally {
           setGenerandoPDF(null)
           setPdfData(null)
@@ -115,7 +121,7 @@ export default function PagosClient({ pagos, pacientes, gastos }: PagosClientPro
       }, 500)
     } catch (err) {
       console.error(err)
-      alert("Error procesando los datos para el recibo.")
+      toast.error("Error procesando los datos para el recibo.")
       setGenerandoPDF(null)
     }
   }
@@ -155,12 +161,36 @@ export default function PagosClient({ pagos, pacientes, gastos }: PagosClientPro
   }
 
   const handleDeleteGasto = async (id: string) => {
-    if (confirm('¿Estás seguro de que deseas eliminar este gasto?')) {
-      await eliminarGasto(id)
+    setConfirmModal({isOpen: true, id})
+  }
+
+  const confirmDeleteGasto = async () => {
+    if (confirmModal.id) {
+      await eliminarGasto(confirmModal.id)
+      setConfirmModal({isOpen: false, id: ''})
     }
   }
 
-  const totalIngresos = pagos.reduce((sum, pago) => sum + Number(pago.monto), 0)
+  const confirmAnularPago = async (justificacion: string) => {
+    if (auditModal.id) {
+      setAuditModal(prev => ({ ...prev, isSubmitting: true }))
+      await anularPago(auditModal.id, justificacion)
+      setAuditModal({isOpen: false, id: '', isSubmitting: false})
+    }
+  }
+
+  const handleDeletePago = (id: string) => {
+    setConfirmPagoModal({isOpen: true, id})
+  }
+
+  const confirmDeletePago = async () => {
+    if (confirmPagoModal.id) {
+      await eliminarPago(confirmPagoModal.id)
+      setConfirmPagoModal({isOpen: false, id: ''})
+    }
+  }
+
+  const totalIngresos = pagos.filter((p: any) => p.estado !== 'anulado').reduce((sum, pago) => sum + Number(pago.monto), 0)
   const totalGastos = gastos.reduce((sum, gasto) => sum + Number(gasto.monto), 0)
   const balanceNeto = totalIngresos - totalGastos
 
@@ -225,9 +255,9 @@ export default function PagosClient({ pagos, pacientes, gastos }: PagosClientPro
                   const nombrePaciente = pacienteInfo?.nombre_completo || 'Desconocido'
                   
                   return (
-                    <tr key={pago.id} className="hover:bg-gray-50">
+                    <tr key={pago.id} className={`hover:bg-gray-50 ${pago.estado === 'anulado' ? 'opacity-60 bg-gray-50' : ''}`}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {pago.numero_recibo}
+                        {pago.numero_recibo} {pago.estado === 'anulado' && <span className="ml-2 text-xs text-red-500 font-bold">(ANULADO)</span>}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(pago.created_at).toLocaleDateString('es-CO')}
@@ -240,24 +270,55 @@ export default function PagosClient({ pagos, pacientes, gastos }: PagosClientPro
                         <div className="text-sm text-gray-900">{pago.metodo_pago}</div>
                         <div className="text-xs text-gray-500 line-clamp-1" title={pago.concepto}>{pago.concepto}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-[#0e787a]">
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-bold ${pago.estado === 'anulado' ? 'line-through text-gray-500' : 'text-[#0e787a]'}`}>
                         {formatoMoneda(pago.monto)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                        <button 
-                          onClick={() => descargarPDF(pago)} 
-                          disabled={generandoPDF === pago.id}
-                          className="text-[#0e787a] hover:text-[#224252] disabled:opacity-50"
-                        >
-                          {generandoPDF === pago.id ? 'Generando...' : 'PDF'}
-                        </button>
-                        <span className="text-gray-300">|</span>
-                        <button 
-                          onClick={() => handleWhatsApp(pacienteInfo?.telefono, pago, nombrePaciente)} 
-                          className="text-[#25D366] hover:text-[#128C7E]"
-                        >
-                          WhatsApp
-                        </button>
+                        {pago.estado !== 'anulado' ? (
+                          <>
+                            <button 
+                              onClick={() => descargarPDF(pago)} 
+                              disabled={generandoPDF === pago.id}
+                              className="text-[#0e787a] hover:text-[#224252] disabled:opacity-50"
+                            >
+                              {generandoPDF === pago.id ? 'Generando...' : 'PDF'}
+                            </button>
+                            <span className="text-gray-300">|</span>
+                            <button 
+                              onClick={() => handleWhatsApp(pacienteInfo?.telefono, pago, nombrePaciente)} 
+                              className="text-[#25D366] hover:text-[#128C7E]"
+                            >
+                              WhatsApp
+                            </button>
+                            <span className="text-gray-300">|</span>
+                            <button 
+                              onClick={() => setAuditModal({isOpen: true, id: pago.id, isSubmitting: false})} 
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              Anular
+                            </button>
+                            <span className="text-gray-300">|</span>
+                            <button 
+                              onClick={() => handleDeletePago(pago.id)} 
+                              className="text-red-600 hover:text-red-800 font-medium"
+                            >
+                              Eliminar
+                            </button>
+                          </>
+                        ) : (
+                          <div className="flex items-center justify-end space-x-2">
+                            <span className="text-xs text-red-500 italic max-w-xs block truncate" title={pago.motivo_anulacion}>
+                              Motivo: {pago.motivo_anulacion}
+                            </span>
+                            <span className="text-gray-300">|</span>
+                            <button 
+                              onClick={() => handleDeletePago(pago.id)} 
+                              className="text-red-600 hover:text-red-800 font-medium"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   )
@@ -478,6 +539,31 @@ export default function PagosClient({ pagos, pacientes, gastos }: PagosClientPro
           />
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title="Eliminar Gasto"
+        message="¿Estás seguro de que deseas eliminar este gasto? Esta acción no se puede deshacer."
+        onConfirm={confirmDeleteGasto}
+        onCancel={() => setConfirmModal({isOpen: false, id: ''})}
+      />
+
+      <ConfirmModal
+        isOpen={confirmPagoModal.isOpen}
+        title="Eliminar Pago"
+        message="¿Estás seguro de que deseas eliminar este pago? Esta acción no se puede deshacer y borrará el registro de la base de datos permanentemente."
+        onConfirm={confirmDeletePago}
+        onCancel={() => setConfirmPagoModal({isOpen: false, id: ''})}
+      />
+
+      <AuditModal
+        isOpen={auditModal.isOpen}
+        title="Anular Recibo de Pago"
+        description="Esta acción marcará el recibo como anulado y descontará el monto del balance neto. Debes proporcionar una justificación válida (mínimo 10 caracteres)."
+        onConfirm={confirmAnularPago}
+        onCancel={() => setAuditModal({isOpen: false, id: '', isSubmitting: false})}
+        isSubmitting={auditModal.isSubmitting}
+      />
     </div>
   )
 }

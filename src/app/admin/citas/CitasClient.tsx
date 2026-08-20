@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import WhatsAppReminderButton from './WhatsAppReminderButton'
 import { actualizarEstadoCita } from './actions'
+import ConfirmModal from '@/components/ConfirmModal'
 
 interface CitasClientProps {
   citas: any[]
@@ -11,10 +12,11 @@ interface CitasClientProps {
 }
 
 export default function CitasClient({ citas, pacientesConHistoria }: CitasClientProps) {
-  const [view, setView] = useState<'lista' | 'calendario'>('lista')
+  const [view, setView] = useState<'lista' | 'calendario'>('calendario')
   const [searchTerm, setSearchTerm] = useState('')
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedCita, setSelectedCita] = useState<any>(null)
+  const [confirmState, setConfirmState] = useState<{isOpen: boolean, title: string, message: string, action: () => void}>({isOpen: false, title: '', message: '', action: () => {}})
 
   // Filtrado general
   const filteredCitas = citas.filter(cita => {
@@ -60,6 +62,8 @@ export default function CitasClient({ citas, pacientesConHistoria }: CitasClient
 
   const getStatusBadge = (cita: any) => {
     if (cita.tipo_evento === 'compromiso_personal') return 'bg-slate-100 text-slate-700'
+    const isPast = new Date(cita.fecha_inicio).getTime() < new Date().getTime()
+    if (cita.estado === 'Programada' && isPast) return 'bg-orange-100 text-orange-700' // Vencida
     switch(cita.estado) {
       case 'Programada': return 'bg-teal-100 text-[#0e787a]'
       case 'Completada': return 'bg-gray-100 text-gray-600'
@@ -67,6 +71,13 @@ export default function CitasClient({ citas, pacientesConHistoria }: CitasClient
       case 'No Asistió': return 'bg-red-100 text-red-600'
       default: return 'bg-gray-100 text-gray-800'
     }
+  }
+
+  const getStatusText = (cita: any) => {
+    if (cita.tipo_evento === 'compromiso_personal') return 'Compromiso'
+    const isPast = new Date(cita.fecha_inicio).getTime() < new Date().getTime()
+    if (cita.estado === 'Programada' && isPast) return 'Vencida / Sin cerrar'
+    return cita.estado
   }
 
   // Componente de Tarjeta de Cita (Lista)
@@ -81,7 +92,7 @@ export default function CitasClient({ citas, pacientesConHistoria }: CitasClient
           <div className="flex items-center gap-3">
             <h3 className="text-lg font-bold text-gray-900">{isCompromiso ? cita.titulo : (cita.pacientes?.nombre_completo || 'Desconocido')}</h3>
             <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(cita)}`}>
-              {isCompromiso ? 'Compromiso' : cita.estado}
+              {getStatusText(cita)}
             </span>
           </div>
           
@@ -95,7 +106,9 @@ export default function CitasClient({ citas, pacientesConHistoria }: CitasClient
 
         <div className="flex flex-col gap-2 min-w-[200px]">
           {isProgramada && !isCompromiso && (
-            <WhatsAppReminderButton cita={cita} />
+            <div className={new Date(cita.fecha_inicio).getTime() < new Date().getTime() ? 'opacity-50 pointer-events-none' : ''}>
+              <WhatsAppReminderButton cita={cita} />
+            </div>
           )}
           
           <div className="flex gap-2">
@@ -109,7 +122,14 @@ export default function CitasClient({ citas, pacientesConHistoria }: CitasClient
                   Completar
                 </button>
                 <button 
-                  onClick={() => actualizarEstadoCita(cita.id, 'Cancelada')}
+                  onClick={() => {
+                    setConfirmState({
+                      isOpen: true,
+                      title: 'Cancelar Cita',
+                      message: '¿Estás seguro de que deseas cancelar esta cita? Esta acción la marcará como Cancelada.',
+                      action: () => actualizarEstadoCita(cita.id, 'Cancelada')
+                    })
+                  }}
                   disabled={!isProgramada}
                   className="flex-1 py-1 px-2 border border-red-300 rounded text-xs font-medium text-red-600 bg-white hover:bg-red-50 disabled:opacity-50"
                 >
@@ -119,7 +139,14 @@ export default function CitasClient({ citas, pacientesConHistoria }: CitasClient
             )}
             {isCompromiso && (
               <button 
-                onClick={() => actualizarEstadoCita(cita.id, 'Cancelada')}
+                onClick={() => {
+                  setConfirmState({
+                    isOpen: true,
+                    title: 'Eliminar Compromiso',
+                    message: '¿Estás seguro de que deseas eliminar este compromiso personal?',
+                    action: () => actualizarEstadoCita(cita.id, 'Cancelada')
+                  })
+                }}
                 disabled={!isProgramada}
                 className="flex-1 py-1 px-2 border border-red-300 rounded text-xs font-medium text-red-600 bg-white hover:bg-red-50 disabled:opacity-50"
               >
@@ -150,7 +177,7 @@ export default function CitasClient({ citas, pacientesConHistoria }: CitasClient
           placeholder="Buscar por paciente o fecha..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="flex-1 max-w-sm px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-[#0e787a] focus:border-[#0e787a]"
+          className="flex-1 max-w-sm px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-[#0e787a] focus:border-[#0e787a] text-slate-800 placeholder:text-slate-500"
         />
         
         <div className="flex bg-gray-100 p-1 rounded-lg">
@@ -224,9 +251,9 @@ export default function CitasClient({ citas, pacientesConHistoria }: CitasClient
                     {dayCitas.map(cita => (
                       <div 
                         key={cita.id} 
-                        title={`${cita.tipo_evento === 'compromiso_personal' ? cita.titulo : cita.pacientes?.nombre_completo} - ${cita.estado}`}
+                        title={`${cita.tipo_evento === 'compromiso_personal' ? cita.titulo : cita.pacientes?.nombre_completo} - ${getStatusText(cita)}`}
                         onClick={() => setSelectedCita(cita)}
-                        className={`text-xs p-1 rounded border truncate cursor-pointer ${getColorClasses(cita)}`}
+                        className={`text-xs p-1 rounded border truncate cursor-pointer ${getColorClasses(cita)} ${new Date(cita.fecha_inicio).getTime() < new Date().getTime() && cita.estado === 'Programada' ? 'ring-2 ring-orange-500 ring-offset-1' : ''}`}
                       >
                         {new Date(cita.fecha_inicio).toLocaleTimeString('es-CO', {hour: '2-digit', minute:'2-digit'})} {cita.tipo_evento === 'compromiso_personal' ? cita.titulo?.substring(0, 10) : cita.pacientes?.nombre_completo?.split(' ')[0]}
                       </div>
@@ -280,7 +307,7 @@ export default function CitasClient({ citas, pacientesConHistoria }: CitasClient
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Estado</p>
                   <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium mt-1 ${getStatusBadge(selectedCita)}`}>
-                    {selectedCita.tipo_evento === 'compromiso_personal' ? 'Compromiso' : selectedCita.estado}
+                    {getStatusText(selectedCita)}
                   </span>
                 </div>
               </div>
@@ -304,15 +331,24 @@ export default function CitasClient({ citas, pacientesConHistoria }: CitasClient
                   </Link>
                   
                   {selectedCita.estado === 'Programada' && (
-                    <WhatsAppReminderButton cita={selectedCita} className="w-full flex justify-center" />
+                    <div className={new Date(selectedCita.fecha_inicio).getTime() < new Date().getTime() ? 'opacity-50 pointer-events-none w-full' : 'w-full flex justify-center'}>
+                      <WhatsAppReminderButton cita={selectedCita} className="w-full flex justify-center" />
+                    </div>
                   )}
                 </>
               )}
               {selectedCita.tipo_evento === 'compromiso_personal' && (
                  <button
                    onClick={() => {
-                     actualizarEstadoCita(selectedCita.id, 'Cancelada')
-                     setSelectedCita(null)
+                     setConfirmState({
+                       isOpen: true,
+                       title: 'Eliminar Compromiso',
+                       message: '¿Estás seguro de que deseas eliminar este compromiso personal?',
+                       action: () => {
+                         actualizarEstadoCita(selectedCita.id, 'Cancelada')
+                         setSelectedCita(null)
+                       }
+                     })
                    }}
                    className="w-full text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors"
                  >
@@ -323,6 +359,17 @@ export default function CitasClient({ citas, pacientesConHistoria }: CitasClient
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        onConfirm={() => {
+          confirmState.action()
+          setConfirmState(prev => ({ ...prev, isOpen: false }))
+        }}
+        onCancel={() => setConfirmState(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   )
 }

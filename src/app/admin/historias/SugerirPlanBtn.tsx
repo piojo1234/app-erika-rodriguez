@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { generarPlanIntervencionAction } from './ai-actions'
 import { supabase } from '@/lib/supabase'
+import toast from 'react-hot-toast'
+import { copiarAlPortapapeles } from '@/utils/helpers'
 
 export default function SugerirPlanBtn({ 
   historia, 
@@ -30,8 +32,7 @@ export default function SugerirPlanBtn({
   }
 
   const handleCopiar = () => {
-    navigator.clipboard.writeText(result)
-    alert('Plan copiado al portapapeles.')
+    copiarAlPortapapeles(result, 'Plan copiado al portapapeles.')
   }
 
   const handleGuardar = async () => {
@@ -47,10 +48,10 @@ export default function SugerirPlanBtn({
 
       if (error) throw error
       
-      alert('Plan guardado exitosamente en la historia.')
+      toast.success('Plan guardado exitosamente en la historia.')
       window.location.reload()
     } catch (error: any) {
-      alert('Error al guardar: ' + error.message)
+      toast.error('Error al guardar: ' + error.message)
     } finally {
       setLoading(false)
     }

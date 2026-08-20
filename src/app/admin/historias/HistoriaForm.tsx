@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import AITextArea from './AITextArea'
 import SugerirDiagnosticoBtn from './SugerirDiagnosticoBtn'
+import toast from 'react-hot-toast'
+import { maskDocument } from '@/utils/helpers'
 
 interface HistoriaFormProps {
   pacientes: any[]
@@ -32,7 +34,8 @@ export default function HistoriaForm({ pacientes, formAction, initialData }: His
     if (modalidad === 'Pareja' && !cie10) {
       setCie10('Z63.0')
     }
-  }, [modalidad, cie10])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modalidad])
 
   const formRef = useRef<HTMLFormElement>(null)
   
@@ -64,8 +67,32 @@ export default function HistoriaForm({ pacientes, formAction, initialData }: His
     }
   }, [fechaNacimiento])
 
+  const validateStep = (step: number) => {
+    if (!formRef.current) return true;
+    const formData = new FormData(formRef.current);
+
+    if (step === 1) {
+      const paciente_id = formData.get('paciente_id');
+      const fechaNacimiento = formData.get('datos_demograficos.fecha_nacimiento');
+      const genero = formData.get('datos_demograficos.genero');
+      const estadoCivil = formData.get('datos_demograficos.estado_civil');
+      const municipio = formData.get('datos_demograficos.municipio_residencia');
+      
+      if (!paciente_id || !fechaNacimiento || !genero || !estadoCivil || !municipio) {
+        toast.error("Por favor, complete todos los campos obligatorios (*) en Datos Generales (Pestaña 1).");
+        return false;
+      }
+    }
+    
+    return true;
+  }
+
   // Handlers para avanzar tabs fácilmente
-  const nextTab = () => setActiveTab(prev => Math.min(prev + 1, 4))
+  const nextTab = () => {
+    if (validateStep(activeTab)) {
+      setActiveTab(prev => Math.min(prev + 1, 4))
+    }
+  }
   const prevTab = () => setActiveTab(prev => Math.max(prev - 1, 1))
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
@@ -97,11 +124,7 @@ export default function HistoriaForm({ pacientes, formAction, initialData }: His
   }
 
   const handleSubmit = async (formData: FormData) => {
-    const paciente_id = formData.get('paciente_id')
-    const fecha = formData.get('datos_demograficos.fecha_nacimiento')
-    
-    if (!paciente_id || !fecha) {
-      alert("Por favor, complete los campos obligatorios: Paciente y Fecha de Nacimiento (Pestaña 1).")
+    if (!validateStep(1)) {
       setActiveTab(1)
       return
     }
@@ -110,13 +133,14 @@ export default function HistoriaForm({ pacientes, formAction, initialData }: His
       setIsSubmitting(true)
       const res = await formAction(formData)
       if (res && res.success) {
+        toast.success("Historia clínica guardada exitosamente.");
         window.location.href = `/admin/historias/${res.id}/evolucion`
       } else if (res && !res.success) {
-        alert(res.error || "Error desconocido guardando la historia clínica.")
+        toast.error(res.error || "Error desconocido guardando la historia clínica.")
+        setIsSubmitting(false)
       }
     } catch (err: any) {
-      alert("Error en la petición: " + err.message)
-    } finally {
+      toast.error("Error en la petición: " + err.message)
       setIsSubmitting(false)
     }
   }
@@ -182,7 +206,7 @@ export default function HistoriaForm({ pacientes, formAction, initialData }: His
               <select id="paciente_id" name="paciente_id" defaultValue={initialData?.paciente_id} className="mt-1 w-full px-3 py-2 border border-slate-300 bg-white text-slate-900 placeholder:text-slate-500 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0e787a]">
                 <option value="">Buscar paciente...</option>
                 {pacientes.map(p => (
-                  <option key={p.id} value={p.id}>{p.nombre_completo} - {p.numero_documento}</option>
+                  <option key={p.id} value={p.id}>{p.nombre_completo} - {maskDocument(p.numero_documento)}</option>
                 ))}
               </select>
             </div>
@@ -892,7 +916,7 @@ export default function HistoriaForm({ pacientes, formAction, initialData }: His
               disabled={isSubmitting}
               className="bg-[#0e787a] py-2 px-8 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white hover:bg-[#0b5c5d] disabled:opacity-50"
             >
-              {isSubmitting ? 'Guardando...' : initialData ? 'Actualizar Historia Clínica' : 'Guardar Historia Clínica'}
+              {isSubmitting ? 'Guardando historia...' : initialData ? 'Actualizar Historia Clínica' : 'Guardar Historia Clínica'}
             </button>
           )}
         </div>

@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import PDFContratoTemplate from '@/components/PDFContratoTemplate'
+import toast from 'react-hot-toast'
+import { copiarAlPortapapeles } from '@/utils/helpers'
 
 interface DashboardClientProps {
   contratos: any[]
@@ -41,8 +43,7 @@ export default function DashboardClient({ contratos, pacientes }: DashboardClien
 
   const handleCopyLink = (token: string) => {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
-    navigator.clipboard.writeText(`${baseUrl}/firmar/${token}`)
-    alert('Link copiado al portapapeles')
+    copiarAlPortapapeles(`${baseUrl}/firmar/${token}`, 'Link copiado al portapapeles')
   }
 
   const handleWhatsApp = (telefono: string, token: string, isFirmado: boolean) => {
@@ -147,7 +148,7 @@ export default function DashboardClient({ contratos, pacientes }: DashboardClien
           pdf.save(`Contrato_${contrato.id.substring(0,8)}.pdf`)
         } catch (err) {
           console.error("Error generando PDF:", err)
-          alert("Error generando el documento PDF.")
+          toast.error("Error generando el documento PDF.")
         } finally {
           setGenerandoPDF(null)
           setPdfData(null)
@@ -156,7 +157,7 @@ export default function DashboardClient({ contratos, pacientes }: DashboardClien
 
     } catch (err) {
       console.error(err)
-      alert("Error obteniendo firmas de trazabilidad.")
+      toast.error("Error obteniendo firmas de trazabilidad.")
       setGenerandoPDF(null)
     }
   }

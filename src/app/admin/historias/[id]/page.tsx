@@ -2,6 +2,7 @@ import { supabaseServer } from '@/lib/supabaseServer'
 import Link from 'next/link'
 import PDFExportButton from './PDFExportButton'
 import SugerirPlanBtn from '../SugerirPlanBtn'
+import HistoriaActions from './HistoriaActions'
 
 export const metadata = {
   title: 'Ver Historia Clínica | Psicóloga Erika Rodríguez',
@@ -60,15 +61,7 @@ export default async function VerHistoriaPage({ params }: { params: Promise<{ id
           >
             &larr; Volver
           </Link>
-          <Link
-            href={`/admin/historias/${historia.id}/editar`}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
-            Editar Historia
-          </Link>
+          <HistoriaActions historiaId={historia.id} estado={historia.estado || 'activa'} />
           <Link
             href={`/admin/historias/${historia.id}/evolucion`}
             className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#25D366] hover:bg-[#128C7E] transition-colors"
