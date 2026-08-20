@@ -13,25 +13,35 @@ export default withSentryConfig(nextConfig, {
   project: "your-project", // PLACEHOLDER
 
   // Only print logs for uploading source maps in CI
-  silent: !process.env.CI,
+  silent: true,
 
   // Upload a larger set of source maps for prettier stack traces (increases build time)
   widenClientFileUpload: true,
 
-  // Automatically annotate React components to show their full name in breadcrumbs and session replay
-  reactComponentAnnotation: {
-    enabled: true,
-  },
-
   // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
   tunnelRoute: "/monitoring",
 
-  // Hides source maps from generated client bundles
-  hideSourceMaps: true,
+  sourcemaps: {
+    disable: true,
+  },
 
-  // Automatically tree-shake Sentry logger statements to reduce bundle size
-  disableLogger: true,
+  webpack: {
+    treeshake: {
+      removeDebugLogging: true,
+    },
+    automaticVercelMonitors: true,
+    reactComponentAnnotation: {
+      enabled: true,
+    },
+  },
 
-  // Enables automatic instrumentation of Vercel Cron Monitors.
-  automaticVercelMonitors: true,
+  // Prevent build failure if SENTRY_AUTH_TOKEN is missing (Vercel)
+  // @ts-ignore - Options passed down to webpack plugin
+  dryRun: !process.env.SENTRY_AUTH_TOKEN,
+  // @ts-ignore
+  errorHandler: (err: any) => {
+    console.warn("Sentry CLI warning:", err.message);
+  },
+
+
 });
