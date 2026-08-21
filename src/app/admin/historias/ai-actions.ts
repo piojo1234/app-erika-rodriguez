@@ -250,3 +250,86 @@ ${evolucionesTexto}`;
 
   throw new Error(`Error en la API de IA (Plan Intervención): ${lastError}`);
 }
+
+export async function sugerirEjerciciosAction({ diagnostico, motivoConsulta, evoluciones, tareasAnteriores }: { diagnostico: string, motivoConsulta: string, evoluciones: any[], tareasAnteriores: any[] }) {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+
+  if (!apiKey) {
+    throw new Error('No se encontró la API Key de Gemini en las variables de entorno.');
+  }
+
+  const evolucionesTexto = evoluciones && evoluciones.length > 0
+    ? evoluciones.map((evol, index) => {
+        return `Sesión ${index + 1} (${new Date(evol.fecha_sesion).toLocaleDateString()}):
+Evolución: ${evol.evolucion_terapeutica}
+${evol.observaciones_valoracion ? `Observaciones: ${evol.observaciones_valoracion}` : ''}`;
+      }).join('\n\n')
+    : 'No hay evoluciones previas recientes.';
+
+  const tareasTexto = tareasAnteriores && tareasAnteriores.length > 0
+    ? tareasAnteriores.map(t => {
+        return `Tarea: ${t.titulo || t.descripcion} | Estado: ${t.estado} ${t.notas ? `| Notas: ${t.notas}` : ''}`;
+      }).join('\n')
+    : 'No hay registro de tareas asignadas o revisadas previamente.';
+
+  const prompt = `Actúa como asistente clínico experto en psicología. Con base en el diagnóstico, motivo de consulta, la evolución reciente y el cumplimiento de las tareas anteriores, sugiere 2 nuevos ejercicios/tareas intersesión para el paciente. No repitas ejercicios que ya domina y adapta la dificultad según cómo le fue en la última sesión.
+
+Devuelve el resultado ESTRICTAMENTE como un arreglo JSON (sin Markdown, sin \`\`\`json). El formato exacto debe ser:
+[
+  {
+    "titulo": "Nombre corto de la tarea",
+    "descripcion": "Instrucciones paso a paso para el paciente",
+    "frecuencia": "Ej: Todos los días por 10 mins"
+  }
+]
+
+Diagnóstico: ${diagnostico}
+Motivo de consulta: ${motivoConsulta}
+
+Evoluciones recientes:
+${evolucionesTexto}
+
+Cumplimiento de Tareas Anteriores:
+${tareasTexto}`;
+
+  const modelsToTry = ['gemini-3.1-flash-lite', 'gemini-3-flash-preview', 'gemini-1.5-flash'];
+  let lastError = null;
+
+  for (const modelName of modelsToTry) {
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: {
+              responseMimeType: "application/json",
+            }
+          })
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) {
+          try {
+            return JSON.parse(text);
+          } catch (e) {
+            const cleaned = text.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '');
+            return JSON.parse(cleaned);
+          }
+        }
+      } else {
+        const errJson = await response.json();
+        lastError = errJson?.error?.message || response.statusText;
+      }
+    } catch (err: any) {
+      lastError = err?.message;
+    }
+  }
+
+  throw new Error(`Error en la API de IA (Sugerir Ejercicios): ${lastError}`);
+}

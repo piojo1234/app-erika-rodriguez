@@ -13,7 +13,19 @@ export async function guardarEvolucion(formData: FormData) {
   const diagnostico_cie10 = (formData.get('diagnostico_cie10') || '') as string
   const asistente_sesion = (formData.get('asistente_sesion') || null) as string | null
   const fecha_sesion = formData.get('fecha_sesion') ? (formData.get('fecha_sesion') as string) : new Date().toISOString()
+  
+  const revision_tarea_previa_str = formData.get('revision_tarea_previa') as string
+  const tareas_casa_str = formData.get('tareas_casa') as string
 
+  let revision_tarea_previa = []
+  let tareas_casa = []
+
+  try {
+    if (revision_tarea_previa_str) revision_tarea_previa = JSON.parse(revision_tarea_previa_str)
+    if (tareas_casa_str) tareas_casa = JSON.parse(tareas_casa_str)
+  } catch (e) {
+    console.error('Error parsing JSON from tareas', e)
+  }
   const { error } = await supabaseServer
     .from('evoluciones_clinicas')
     .insert({
@@ -24,7 +36,9 @@ export async function guardarEvolucion(formData: FormData) {
       evolucion_terapeutica,
       observaciones_valoracion,
       diagnostico_cie10,
-      asistente_sesion
+      asistente_sesion,
+      revision_tarea_previa,
+      tareas_casa
     })
 
   if (error) {
@@ -40,4 +54,18 @@ export async function guardarEvolucion(formData: FormData) {
 
   revalidatePath('/admin/historias')
   redirect(`/admin/historias/${historia_clinica_id}`)
+}
+
+export async function actualizarTareasEvolucion(evolucionId: string, tareasCasa: any[]) {
+  const { error } = await supabaseServer
+    .from('evoluciones_clinicas')
+    .update({ tareas_casa: tareasCasa })
+    .eq('id', evolucionId)
+
+  if (error) {
+    console.error("Error al actualizar tareas de evolución:", error)
+    throw new Error('Error actualizando las tareas.')
+  }
+
+  revalidatePath('/admin/historias')
 }

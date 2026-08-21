@@ -2,6 +2,8 @@ import { supabaseServer } from '@/lib/supabaseServer'
 import Link from 'next/link'
 import { guardarEvolucion } from './actions'
 import GenerarInformeBtn from './GenerarInformeBtn'
+import TareasCasaClient from './TareasCasaClient'
+import TareasHistorialClient from './TareasHistorialClient'
 
 export const metadata = {
   title: 'Evoluciones Terapéuticas | Psicóloga Erika Rodríguez',
@@ -13,7 +15,7 @@ export default async function EvolucionPage({ params }: { params: Promise<{ id: 
   // Obtener historia y paciente
   const { data: historia, error } = await supabaseServer
     .from('historias_clinicas')
-    .select('id, paciente_id, datos_demograficos, pacientes(nombre_completo, numero_documento)')
+    .select('id, paciente_id, datos_demograficos, acudiente, pacientes(nombre_completo, numero_documento, telefono)')
     .eq('id', id)
     .single()
 
@@ -37,6 +39,11 @@ export default async function EvolucionPage({ params }: { params: Promise<{ id: 
 
   const numSiguienteSesion = (evoluciones?.length || 0) + 1
 
+  const ultimaEvolucion = evoluciones?.[0]
+  const tareasPrevias = ultimaEvolucion?.tareas_casa ? (typeof ultimaEvolucion.tareas_casa === 'string' ? JSON.parse(ultimaEvolucion.tareas_casa) : ultimaEvolucion.tareas_casa) : []
+
+  const pacienteTelefonoBase = (historia.pacientes as any)?.telefono || (historia.acudiente as any)?.telefono || ''
+  
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 font-sans">
       <div className="mb-8 flex items-center justify-between">
@@ -91,10 +98,21 @@ export default async function EvolucionPage({ params }: { params: Promise<{ id: 
 
                 <div>
                   <label className="block text-sm font-semibold text-slate-800">Diagnóstico CIE-10 Actualizado</label>
-                  <input type="text" name="diagnostico_cie10" className="mt-1 w-full px-3 py-2 border border-slate-300 bg-white text-slate-900 placeholder:text-slate-500 rounded-lg shadow-sm focus:ring-[#0e787a]" placeholder="Opcional. Ej: F41.1" />
+                  <input type="text" name="diagnostico_cie10" defaultValue={ultimaEvolucion?.diagnostico_cie10 || ''} className="mt-1 w-full px-3 py-2 border border-slate-300 bg-white text-slate-900 placeholder:text-slate-500 rounded-lg shadow-sm focus:ring-[#0e787a]" placeholder="Opcional. Ej: F41.1" />
                 </div>
 
-                <button type="submit" className="w-full bg-[#0e787a] py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white hover:bg-[#0b5c5d]">
+                <hr className="my-6" />
+
+                <TareasCasaClient
+                  diagnostico={ultimaEvolucion?.diagnostico_cie10 || 'No especificado'}
+                  motivoConsulta={(historia as any)?.anamnesis?.motivo_consulta || (historia as any)?.motivo_consulta || 'No especificado'}
+                  evolucionesRecientes={evoluciones?.slice(0, 2) || []}
+                  tareasPrevias={tareasPrevias}
+                  pacienteNombre={(historia.pacientes as any)?.nombre_completo || ''}
+                  pacienteTelefono={pacienteTelefonoBase}
+                />
+
+                <button type="submit" className="mt-4 w-full bg-[#0e787a] py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white hover:bg-[#0b5c5d]">
                   Guardar Evolución
                 </button>
               </div>
@@ -140,6 +158,13 @@ export default async function EvolucionPage({ params }: { params: Promise<{ id: 
                     </div>
                   )}
                 </div>
+                
+                <TareasHistorialClient
+                  evolucionId={evol.id}
+                  tareasIniciales={evol.tareas_casa ? (typeof evol.tareas_casa === 'string' ? JSON.parse(evol.tareas_casa) : evol.tareas_casa) : []}
+                  pacienteNombre={(historia.pacientes as any)?.nombre_completo || ''}
+                  pacienteTelefono={pacienteTelefonoBase}
+                />
               </div>
             ))
           )}
