@@ -7,6 +7,7 @@ import html2canvas from 'html2canvas'
 import PDFContratoTemplate from '@/components/PDFContratoTemplate'
 import toast from 'react-hot-toast'
 import { copiarAlPortapapeles } from '@/utils/helpers'
+import Link from 'next/link'
 
 interface DashboardClientProps {
   contratos: any[]
@@ -227,6 +228,8 @@ export default function DashboardClient({ contratos, pacientes }: DashboardClien
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                       {!isFirmado ? (
                         <>
+                          <Link href={`/admin/contratos/${contrato.id}/editar`} className="text-blue-500 hover:text-blue-700">Editar</Link>
+                          <span className="text-gray-300">|</span>
                           <button onClick={() => handleCopyLink(contrato.token_acceso)} className="text-[#0e787a] hover:text-[#224252]">Copiar Link</button>
                           <span className="text-gray-300">|</span>
                           <button onClick={() => handleWhatsApp(paciente1?.telefono || '', contrato.token_acceso, false)} className="text-[#25D366] hover:text-[#128C7E]">WhatsApp</button>

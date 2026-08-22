@@ -50,6 +50,13 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
+  // Si trata de entrar a un endpoint API protegido
+  if (request.nextUrl.pathname.startsWith('/api')) {
+    if (!user || (adminEmail && user.email !== adminEmail)) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+  }
+
   // Si trata de entrar a /login pero ya está logueado y autorizado
   if (request.nextUrl.pathname.startsWith('/login')) {
     if (user && (!adminEmail || user.email === adminEmail)) {

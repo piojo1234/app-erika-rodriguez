@@ -2,8 +2,13 @@
 
 import { supabaseServer } from '@/lib/supabaseServer'
 import { revalidatePath } from 'next/cache'
+import { createClient } from '@/utils/supabase/server'
 
 export async function anularHistoria(id: string, justificacion: string) {
+  const supabaseAuth = await createClient()
+  const { data: { user } } = await supabaseAuth.auth.getUser()
+  if (!user) throw new Error('No autorizado')
+
   if (!justificacion || justificacion.length < 10) {
     return { success: false, error: 'Justificación muy corta.' }
   }
@@ -32,6 +37,10 @@ export async function anularHistoria(id: string, justificacion: string) {
 }
 
 export async function auditarEdicionHistoria(id: string, justificacion: string) {
+  const supabaseAuth = await createClient()
+  const { data: { user } } = await supabaseAuth.auth.getUser()
+  if (!user) throw new Error('No autorizado')
+
   if (!justificacion || justificacion.length < 10) {
     return { success: false, error: 'Justificación muy corta.' }
   }

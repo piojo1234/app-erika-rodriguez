@@ -17,11 +17,15 @@ const PDFReciboTemplate = forwardRef<HTMLDivElement, PDFReciboProps>(
       hour: '2-digit', minute: '2-digit'
     })
 
-    const montoFormateado = new Intl.NumberFormat('es-CO', { 
+    const formatCop = (val: number) => new Intl.NumberFormat('es-CO', { 
       style: 'currency', 
       currency: 'COP',
       maximumFractionDigits: 0
-    }).format(pago.monto)
+    }).format(val)
+
+    const montoDonacion = Number(pago.monto_donacion) || 0
+    const montoPaciente = Number(pago.monto) || 0
+    const totalRecibido = montoPaciente + montoDonacion
 
     return (
       <div 
@@ -104,14 +108,42 @@ const PDFReciboTemplate = forwardRef<HTMLDivElement, PDFReciboProps>(
             </tr>
           </thead>
           <tbody>
-            <tr style={{ borderBottom: '1px solid #cbd5e1' }}>
-              <td style={{ padding: '16px 12px', fontSize: '15px', color: '#1e293b' }}>{pago.concepto}</td>
+            <tr style={{ borderBottom: montoDonacion > 0 ? '1px solid #e2e8f0' : '1px solid #cbd5e1' }}>
+              <td style={{ padding: '16px 12px', fontSize: '15px', color: '#1e293b' }}>
+                {pago.concepto}
+                {montoDonacion > 0 && <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>Aporte / Pago del Paciente</div>}
+              </td>
               <td style={{ padding: '16px 12px', fontSize: '14px', color: '#475569' }}>{pago.metodo_pago}</td>
               <td style={{ padding: '16px 12px', fontSize: '14px', color: '#475569' }}>{pago.referencia || 'N/A'}</td>
-              <td style={{ padding: '16px 12px', fontSize: '16px', fontWeight: 'bold', color: '#0f172a', textAlign: 'right' }}>
-                {montoFormateado}
+              <td style={{ padding: '16px 12px', fontSize: montoDonacion > 0 ? '15px' : '16px', fontWeight: montoDonacion > 0 ? 'normal' : 'bold', color: '#0f172a', textAlign: 'right' }}>
+                {formatCop(montoPaciente)}
               </td>
             </tr>
+            {montoDonacion > 0 && (
+              <tr style={{ borderBottom: '2px solid #cbd5e1', backgroundColor: '#f8fafc' }}>
+                <td style={{ padding: '16px 12px', fontSize: '14px', color: '#1e293b' }} colSpan={3}>
+                  <strong>Aporte / Donación Tercero:</strong><br/>
+                  <span style={{ fontSize: '12px', color: '#64748b' }}>
+                    {pago.es_donacion_anonima 
+                      ? '(Aporte de: Donante Anónimo)' 
+                      : `(Aporte de: ${pago.donante_nombre}${pago.donante_identificacion ? ` - CC ${pago.donante_identificacion}` : ''})`}
+                  </span>
+                </td>
+                <td style={{ padding: '16px 12px', fontSize: '15px', color: '#0f172a', textAlign: 'right' }}>
+                  {formatCop(montoDonacion)}
+                </td>
+              </tr>
+            )}
+            {montoDonacion > 0 && (
+              <tr>
+                <td colSpan={3} style={{ padding: '16px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px', color: '#224252' }}>
+                  Total Recibido:
+                </td>
+                <td style={{ padding: '16px 12px', fontSize: '18px', fontWeight: 'bold', color: '#0e787a', textAlign: 'right' }}>
+                  {formatCop(totalRecibido)}
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
 

@@ -4,7 +4,13 @@ import { supabaseServer } from '@/lib/supabaseServer'
 import { redirect } from 'next/navigation'
 import crypto from 'crypto'
 
+import { createClient } from '@/utils/supabase/server'
+
 export async function registrarPago(formData: FormData) {
+  const supabaseAuth = await createClient()
+  const { data: { user } } = await supabaseAuth.auth.getUser()
+  if (!user) throw new Error('No autorizado')
+
   const paciente_id = formData.get('paciente_id') as string
   const monto = parseFloat(formData.get('monto') as string)
   const metodo_pago = formData.get('metodo_pago') as string
@@ -16,6 +22,12 @@ export async function registrarPago(formData: FormData) {
   const pagador_nombre = formData.get('pagador_nombre') as string
   const pagador_cedula = formData.get('pagador_cedula') as string
   const menor_nombre = formData.get('menor_nombre') as string
+
+  const incluye_donacion = formData.get('incluye_donacion') === 'true'
+  const monto_donacion = incluye_donacion ? parseFloat(formData.get('monto_donacion') as string) || 0 : 0
+  const es_donacion_anonima = incluye_donacion && formData.get('es_donacion_anonima') === 'true'
+  const donante_nombre = incluye_donacion && !es_donacion_anonima ? (formData.get('donante_nombre') as string) : null
+  const donante_identificacion = incluye_donacion && !es_donacion_anonima ? (formData.get('donante_identificacion') as string) : null
 
   // Generar ID de Recibo único: REC-YYYYMM-XXXX
   const date = new Date()
@@ -66,6 +78,10 @@ export async function registrarPago(formData: FormData) {
         pagador_nombre: pagador_nombre || null,
         pagador_cedula: pagador_cedula || null,
         menor_nombre: menor_nombre || null,
+        monto_donacion,
+        es_donacion_anonima,
+        donante_nombre,
+        donante_identificacion,
       })
 
     if (error) {

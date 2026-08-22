@@ -2,8 +2,13 @@
 
 import { supabaseServer } from '@/lib/supabaseServer'
 import { revalidatePath } from 'next/cache'
+import { createClient } from '@/utils/supabase/server'
 
 export async function agendarCita(formData: FormData) {
+  const supabaseAuth = await createClient()
+  const { data: { user } } = await supabaseAuth.auth.getUser()
+  if (!user) throw new Error('No autorizado')
+
   const tipo_evento = formData.get('tipo_evento') as string || 'cita_clinica'
   const paciente_id = formData.get('paciente_id') as string || null
   const titulo = formData.get('titulo') as string || null
@@ -62,6 +67,10 @@ export async function agendarCita(formData: FormData) {
   }
 }
 export async function actualizarEstadoCita(citaId: string, nuevoEstado: string) {
+  const supabaseAuth = await createClient()
+  const { data: { user } } = await supabaseAuth.auth.getUser()
+  if (!user) throw new Error('No autorizado')
+
   try {
     const { error } = await supabaseServer
       .from('citas')

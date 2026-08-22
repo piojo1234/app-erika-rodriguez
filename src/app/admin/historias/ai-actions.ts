@@ -1,6 +1,12 @@
 'use server'
 
+import { createClient } from '@/utils/supabase/server'
+
 export async function generateTextAction(textoOriginal: string) {
+  const supabaseAuth = await createClient()
+  const { data: { user } } = await supabaseAuth.auth.getUser()
+  if (!user) throw new Error('No autorizado')
+
   const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
   if (!apiKey) {
@@ -117,6 +123,10 @@ ${evolucionesTexto}`;
 }
 
 export async function sugerirDiagnosticoAction(motivoConsulta: string, examenMental: string) {
+  const supabaseAuth = await createClient()
+  const { data: { user } } = await supabaseAuth.auth.getUser()
+  if (!user) throw new Error('No autorizado')
+
   const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
   if (!apiKey) {
@@ -182,6 +192,10 @@ Examen mental: ${examenMental}`;
 }
 
 export async function generarPlanIntervencionAction({ historiaClinica, evoluciones }: { historiaClinica: any, evoluciones: any[] }) {
+  const supabaseAuth = await createClient()
+  const { data: { user } } = await supabaseAuth.auth.getUser()
+  if (!user) throw new Error('No autorizado')
+
   const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
   if (!apiKey) {
@@ -252,6 +266,10 @@ ${evolucionesTexto}`;
 }
 
 export async function sugerirEjerciciosAction({ diagnostico, motivoConsulta, evoluciones, tareasAnteriores }: { diagnostico: string, motivoConsulta: string, evoluciones: any[], tareasAnteriores: any[] }) {
+  const supabaseAuth = await createClient()
+  const { data: { user } } = await supabaseAuth.auth.getUser()
+  if (!user) throw new Error('No autorizado')
+
   const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
   if (!apiKey) {

@@ -14,6 +14,7 @@ export default function AdminNavbar() {
     { name: 'Nuevo Contrato', href: '/admin/nuevo-contrato' },
     { name: 'Pagos y Recibos', href: '/admin/pagos' },
     { name: 'Historias Clínicas', href: '/admin/historias' },
+    { name: 'Documentos', href: '/admin/documentos' },
     { name: 'Agendamiento', href: '/admin/citas' },
   ]
 

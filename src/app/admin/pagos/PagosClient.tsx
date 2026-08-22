@@ -190,7 +190,7 @@ export default function PagosClient({ pagos, pacientes, gastos }: PagosClientPro
     }
   }
 
-  const totalIngresos = pagos.filter((p: any) => p.estado !== 'anulado').reduce((sum, pago) => sum + Number(pago.monto), 0)
+  const totalIngresos = pagos.filter((p: any) => p.estado !== 'anulado').reduce((sum, pago) => sum + Number(pago.monto) + (Number(pago.monto_donacion) || 0), 0)
   const totalGastos = gastos.reduce((sum, gasto) => sum + Number(gasto.monto), 0)
   const balanceNeto = totalIngresos - totalGastos
 
@@ -271,7 +271,12 @@ export default function PagosClient({ pagos, pacientes, gastos }: PagosClientPro
                         <div className="text-xs text-gray-500 line-clamp-1" title={pago.concepto}>{pago.concepto}</div>
                       </td>
                       <td className={`px-6 py-4 whitespace-nowrap text-sm font-bold ${pago.estado === 'anulado' ? 'line-through text-gray-500' : 'text-[#0e787a]'}`}>
-                        {formatoMoneda(pago.monto)}
+                        {formatoMoneda(Number(pago.monto) + (Number(pago.monto_donacion) || 0))}
+                        {Number(pago.monto_donacion) > 0 && (
+                          <div className="text-[10px] text-indigo-500 font-normal mt-0.5">
+                            + Aporte de tercero
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                         {pago.estado !== 'anulado' ? (
@@ -290,6 +295,13 @@ export default function PagosClient({ pagos, pacientes, gastos }: PagosClientPro
                             >
                               WhatsApp
                             </button>
+                            <span className="text-gray-300">|</span>
+                            <Link 
+                              href={`/admin/pagos/${pago.id}/editar`}
+                              className="text-blue-500 hover:text-blue-700"
+                            >
+                              Editar
+                            </Link>
                             <span className="text-gray-300">|</span>
                             <button 
                               onClick={() => setAuditModal({isOpen: true, id: pago.id, isSubmitting: false})} 

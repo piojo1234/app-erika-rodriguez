@@ -2,23 +2,25 @@
 
 import { useState, useEffect } from 'react'
 import { maskDocument } from '@/utils/helpers'
-import { registrarPago } from './actions'
+import { actualizarPago } from '../../actions'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 
-export default function NuevoPagoForm({ pacientes }: { pacientes: any[] }) {
-  const [esMenor, setEsMenor] = useState(false)
-  const [menorNombre, setMenorNombre] = useState('')
-  const [concepto, setConcepto] = useState('')
-  const [selectedPacienteId, setSelectedPacienteId] = useState('')
+export default function EditarPagoForm({ pacientes, pago }: { pacientes: any[], pago: any }) {
+  const [esMenor, setEsMenor] = useState(pago.es_menor || false)
+  const [menorNombre, setMenorNombre] = useState(pago.menor_nombre || '')
+  const [concepto, setConcepto] = useState(pago.concepto || '')
+  const [selectedPacienteId, setSelectedPacienteId] = useState(pago.paciente_id || '')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   
-  const [monto, setMonto] = useState<number | ''>('')
-  const [incluyeDonacion, setIncluyeDonacion] = useState(false)
-  const [montoDonacion, setMontoDonacion] = useState<number | ''>('')
-  const [esDonacionAnonima, setEsDonacionAnonima] = useState(false)
+  const [monto, setMonto] = useState<number | ''>(pago.monto || '')
+  
+  const hasDonacion = Number(pago.monto_donacion) > 0 || !!pago.donante_nombre || pago.es_donacion_anonima
+  const [incluyeDonacion, setIncluyeDonacion] = useState(hasDonacion)
+  const [montoDonacion, setMontoDonacion] = useState<number | ''>(pago.monto_donacion || '')
+  const [esDonacionAnonima, setEsDonacionAnonima] = useState(pago.es_donacion_anonima || false)
 
   const router = useRouter()
 
@@ -26,9 +28,9 @@ export default function NuevoPagoForm({ pacientes }: { pacientes: any[] }) {
 
   useEffect(() => {
     if (esMenor && menorNombre.trim()) {
-      setConcepto(`Atención Psicológica para el/la menor ${menorNombre.trim()}`)
-    } else if (!esMenor && concepto.startsWith('Atención Psicológica para el/la menor')) {
-      setConcepto('')
+      if (!concepto.startsWith('Atención Psicológica para el/la menor')) {
+        setConcepto(`Atención Psicológica para el/la menor ${menorNombre.trim()}`)
+      }
     }
   }, [esMenor, menorNombre])
 
@@ -42,14 +44,16 @@ export default function NuevoPagoForm({ pacientes }: { pacientes: any[] }) {
     formData.set('es_menor', esMenor ? 'true' : 'false')
     formData.set('incluye_donacion', incluyeDonacion ? 'true' : 'false')
     formData.set('es_donacion_anonima', esDonacionAnonima ? 'true' : 'false')
+    formData.set('pago_id', pago.id)
 
     try {
       setIsSubmitting(true)
-      const res = await registrarPago(formData)
+      const res = await actualizarPago(formData)
       if (res && res.success === false) {
-        toast.error("Error registrando pago: " + res.error)
+        toast.error("Error actualizando pago: " + res.error)
       } else {
-        toast.success("Pago registrado exitosamente.")
+        toast.success("Pago actualizado exitosamente.")
+        router.push('/admin/pagos')
       }
     } catch (error: any) {
       toast.error("Error inesperado: " + error.message)
@@ -101,6 +105,7 @@ export default function NuevoPagoForm({ pacientes }: { pacientes: any[] }) {
                 <select
                   id="contrato_id"
                   name="contrato_id"
+                  defaultValue={pago.contrato_id || ''}
                   className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white text-slate-900 placeholder:text-slate-500 placeholder:opacity-100 focus:outline-none focus:ring-2 focus:ring-[#0e787a]"
                 >
                   <option value="">Ninguno / Pago Independiente</option>
@@ -144,6 +149,7 @@ export default function NuevoPagoForm({ pacientes }: { pacientes: any[] }) {
                     name="pagador_nombre"
                     id="pagador_nombre"
                     required={esMenor}
+                    defaultValue={pago.pagador_nombre || ''}
                     className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white text-slate-900 placeholder:text-slate-500 placeholder:opacity-100 focus:outline-none focus:ring-2 focus:ring-[#0e787a]"
                     placeholder="Ej: Carlos Pérez"
                   />
@@ -158,6 +164,7 @@ export default function NuevoPagoForm({ pacientes }: { pacientes: any[] }) {
                     name="pagador_cedula"
                     id="pagador_cedula"
                     required={esMenor}
+                    defaultValue={pago.pagador_cedula || ''}
                     className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white text-slate-900 placeholder:text-slate-500 placeholder:opacity-100 focus:outline-none focus:ring-2 focus:ring-[#0e787a]"
                     placeholder="Ej: 1020304050"
                   />
@@ -278,6 +285,7 @@ export default function NuevoPagoForm({ pacientes }: { pacientes: any[] }) {
                     id="donante_nombre"
                     disabled={esDonacionAnonima}
                     required={!esDonacionAnonima && incluyeDonacion}
+                    defaultValue={pago.donante_nombre || ''}
                     className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white text-slate-900 disabled:bg-gray-100 disabled:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-600"
                     placeholder={esDonacionAnonima ? 'Donante Anónimo' : 'Ej: María Gómez'}
                   />
@@ -292,6 +300,7 @@ export default function NuevoPagoForm({ pacientes }: { pacientes: any[] }) {
                     name="donante_identificacion"
                     id="donante_identificacion"
                     disabled={esDonacionAnonima}
+                    defaultValue={pago.donante_identificacion || ''}
                     className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white text-slate-900 disabled:bg-gray-100 disabled:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-600"
                     placeholder="Ej: 1234567890"
                   />
@@ -318,6 +327,7 @@ export default function NuevoPagoForm({ pacientes }: { pacientes: any[] }) {
                 required
                 id="metodo_pago"
                 name="metodo_pago"
+                defaultValue={pago.metodo_pago}
                 className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white text-slate-900 placeholder:text-slate-500 placeholder:opacity-100 focus:outline-none focus:ring-2 focus:ring-[#0e787a]"
               >
                 <option value="Efectivo">Efectivo</option>
@@ -339,6 +349,7 @@ export default function NuevoPagoForm({ pacientes }: { pacientes: any[] }) {
                 type="text"
                 name="referencia"
                 id="referencia"
+                defaultValue={pago.referencia || ''}
                 className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white text-slate-900 placeholder:text-slate-500 placeholder:opacity-100 focus:outline-none focus:ring-2 focus:ring-[#0e787a]"
                 placeholder="Ej: Aprobación #12345 o Transacción Nequi"
               />
@@ -374,6 +385,7 @@ export default function NuevoPagoForm({ pacientes }: { pacientes: any[] }) {
                 id="notas"
                 name="notas"
                 rows={3}
+                defaultValue={pago.notas || ''}
                 className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white text-slate-900 placeholder:text-slate-500 placeholder:opacity-100 focus:outline-none focus:ring-2 focus:ring-[#0e787a]"
                 placeholder="Anotaciones privadas sobre este pago..."
               />
@@ -399,9 +411,9 @@ export default function NuevoPagoForm({ pacientes }: { pacientes: any[] }) {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Procesando pago...
+                Guardando cambios...
               </>
-            ) : 'Generar Recibo de Pago'}
+            ) : 'Actualizar Pago'}
           </button>
         </div>
       </form>
