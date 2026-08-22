@@ -4,6 +4,8 @@ import { guardarEvolucion } from './actions'
 import GenerarInformeBtn from './GenerarInformeBtn'
 import TareasCasaClient from './TareasCasaClient'
 import TareasHistorialClient from './TareasHistorialClient'
+import ControlSaldosClient from './ControlSaldosClient'
+import EditarEvolucionModal from './EditarEvolucionModal'
 
 export const metadata = {
   title: 'Evoluciones Terapéuticas | Psicóloga Erika Rodríguez',
@@ -37,7 +39,15 @@ export default async function EvolucionPage({ params }: { params: Promise<{ id: 
     .eq('historia_clinica_id', historia.id)
     .order('numero_sesion', { ascending: false })
 
+  // Obtener vista_saldo_paquetes
+  const { data: vistaSaldo } = await supabaseServer
+    .from('vista_saldo_paquetes')
+    .select('*')
+    .eq('paciente_id', historia.paciente_id)
+    .maybeSingle()
+
   const numSiguienteSesion = (evoluciones?.length || 0) + 1
+  const sesionPaqueteSiguiente = vistaSaldo ? vistaSaldo.sesiones_consumidas + 1 : numSiguienteSesion
 
   const ultimaEvolucion = evoluciones?.[0]
   const tareasPrevias = ultimaEvolucion?.tareas_casa ? (typeof ultimaEvolucion.tareas_casa === 'string' ? JSON.parse(ultimaEvolucion.tareas_casa) : ultimaEvolucion.tareas_casa) : []
@@ -56,18 +66,33 @@ export default async function EvolucionPage({ params }: { params: Promise<{ id: 
         </Link>
       </div>
 
+      <ControlSaldosClient 
+        vistaSaldo={vistaSaldo} 
+        pacienteTelefono={pacienteTelefonoBase} 
+      />
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         
         {/* Formulario de Nueva Evolución */}
         <div className="md:col-span-1">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden sticky top-24">
             <div className="px-6 py-4 border-b border-gray-200 bg-[#0e787a] text-white">
-              <h2 className="text-lg font-semibold">Registrar Sesión {numSiguienteSesion}</h2>
+              <h2 className="text-lg font-semibold">Registrar Sesión {vistaSaldo ? sesionPaqueteSiguiente : numSiguienteSesion}</h2>
             </div>
             <form action={guardarEvolucion} className="p-6">
               <input type="hidden" name="historia_clinica_id" value={historia.id} />
               <input type="hidden" name="paciente_id" value={historia.paciente_id} />
               <input type="hidden" name="numero_sesion" value={numSiguienteSesion} />
+              {vistaSaldo?.contrato_id && <input type="hidden" name="contrato_id" value={vistaSaldo.contrato_id} />}
+              
+              {vistaSaldo && (
+                <div className="mb-4 bg-blue-50 text-blue-800 text-sm p-3 rounded-lg border border-blue-100 flex items-start gap-2">
+                  <span className="text-lg">ℹ️</span>
+                  <p>
+                    Esta nota corresponderá a la <strong>Sesión {sesionPaqueteSiguiente} de {vistaSaldo.total_sesiones_contratadas}</strong> del paquete contratado.
+                  </p>
+                </div>
+              )}
               
               <div className="space-y-4">
                 <div>
@@ -131,7 +156,10 @@ export default async function EvolucionPage({ params }: { params: Promise<{ id: 
             evoluciones?.map(evol => (
               <div key={evol.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div className="flex justify-between items-center mb-4 border-b pb-2">
-                  <h3 className="font-bold text-[#224252]">Sesión N° {evol.numero_sesion}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-[#224252]">Sesión N° {evol.numero_sesion}</h3>
+                    <EditarEvolucionModal evolucion={evol} esPareja={evol.asistente_sesion !== null} />
+                  </div>
                   <div className="text-right">
                     <span className="text-sm text-gray-500 block" suppressHydrationWarning>{new Date(evol.fecha_sesion).toLocaleString('es-CO')}</span>
                     {evol.asistente_sesion && (
