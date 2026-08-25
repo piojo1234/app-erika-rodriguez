@@ -13,6 +13,7 @@ export default function AdminNavbar() {
     { name: 'Dashboard', href: '/admin' },
     { name: 'Nuevo Contrato', href: '/admin/nuevo-contrato' },
     { name: 'Pagos y Recibos', href: '/admin/pagos' },
+    { name: 'Cuentas de Cobro', href: '/admin/cuentas-cobro' },
     { name: 'Historias Clínicas', href: '/admin/historias' },
     { name: 'Documentos', href: '/admin/documentos' },
     { name: 'Agendamiento', href: '/admin/citas' },
