@@ -5,6 +5,9 @@ export const metadata = {
   title: 'Registrar Pago | Psicóloga Erika Rodríguez',
 }
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function RegistrarPagoPage() {
   // Obtener pacientes para el select
   const { data: pacientes } = await supabaseServer

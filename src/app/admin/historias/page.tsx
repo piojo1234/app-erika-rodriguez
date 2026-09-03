@@ -6,6 +6,9 @@ export const metadata = {
   title: 'Historias Clínicas | Psicóloga Erika Rodríguez',
 }
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function HistoriasPage() {
   // Fetch historias clinicas and associated pacientes
   const { data: historias, error: historiasError } = await supabaseServer
