@@ -62,7 +62,7 @@ export default async function FirmarContratoPage({ params }: PageProps) {
         {/* Cabecera del Documento con Logo Institucional */}
         <div className="p-8 md:p-10 text-center border-b border-gray-100 bg-white">
           <img 
-            src="https://erikarodriguezpsicologa.com/wp-content/uploads/2026/07/logo-erika-.png" 
+            src="/logo-erika.png" 
             alt="Psicóloga Erika Rodríguez" 
             className="h-24 mx-auto object-contain mb-6"
           />
@@ -90,7 +90,7 @@ export default async function FirmarContratoPage({ params }: PageProps) {
               {/* Columna 1: La Psicóloga */}
               <div className="flex flex-col items-center text-center">
                 <img 
-                  src="https://erikarodriguezpsicologa.com/wp-content/uploads/2026/07/Diseno-sin-titulo.png" 
+                  src="/firma-erika.png" 
                   alt="Firma Psicóloga Erika Rodríguez"
                   className="object-contain mix-blend-multiply relative z-10"
                   style={{ maxWidth: '180px', height: 'auto', maxHeight: '120px', marginBottom: '-15px' }}

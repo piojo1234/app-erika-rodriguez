@@ -73,7 +73,7 @@ export default function PagosClient({ pagos, pacientes, gastos }: PagosClientPro
 
     try {
       const paciente = pago.pacientes || pacientes.find(p => p.id === pago.paciente_id)
-      const logoB64 = await getBase64ImageFromUrl('https://erikarodriguezpsicologa.com/wp-content/uploads/2026/07/logo-erika-.png').catch(() => '')
+      const logoB64 = await getBase64ImageFromUrl('/logo-erika.png').catch(() => '')
 
       setPdfData({ pago, paciente, logoBase64: logoB64 })
 

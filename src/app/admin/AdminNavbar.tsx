@@ -36,7 +36,7 @@ export default function AdminNavbar() {
                 <Link href="/admin">
                   <img
                     className="h-10 w-auto"
-                    src="https://erikarodriguezpsicologa.com/wp-content/uploads/2026/07/logo-erika-.png"
+                    src="/logo-erika.png"
                     alt="Logo Psicóloga Erika Rodríguez"
                   />
                 </Link>

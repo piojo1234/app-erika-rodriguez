@@ -28,7 +28,7 @@ export default function LoginPage() {
         <div className="flex justify-center mb-6">
           <img
             className="h-16 w-auto"
-            src="https://erikarodriguezpsicologa.com/wp-content/uploads/2026/07/logo-erika-.png"
+            src="/logo-erika.png"
             alt="Logo Psicóloga Erika Rodríguez"
           />
         </div>

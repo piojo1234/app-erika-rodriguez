@@ -99,8 +99,8 @@ export default function DashboardClient({ contratos, pacientes }: DashboardClien
       await Promise.all(fetchFirmasPromises);
 
       const [logoB64, psicologaB64] = await Promise.all([
-        getBase64ImageFromUrl('https://erikarodriguezpsicologa.com/wp-content/uploads/2026/07/logo-erika-.png').catch(()=>'https://erikarodriguezpsicologa.com/wp-content/uploads/2026/07/logo-erika-.png'),
-        getBase64ImageFromUrl('https://erikarodriguezpsicologa.com/wp-content/uploads/2026/07/Diseno-sin-titulo.png').catch(()=>'https://erikarodriguezpsicologa.com/wp-content/uploads/2026/07/Diseno-sin-titulo.png')
+        getBase64ImageFromUrl('/logo-erika.png').catch(()=>'/logo-erika.png'),
+        getBase64ImageFromUrl('/firma-erika.png').catch(()=>'/firma-erika.png')
       ]);
 
       const imagesBase64 = {

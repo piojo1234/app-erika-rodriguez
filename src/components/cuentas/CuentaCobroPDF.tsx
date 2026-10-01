@@ -20,13 +20,13 @@ export default function CuentaCobroPDF({ cuenta, onClose }: CuentaCobroPDFProps)
   useEffect(() => {
     const fetchImages = async () => {
       try {
-        const resLogo = await fetch('/api/proxy-image?url=' + encodeURIComponent('https://erikarodriguezpsicologa.com/wp-content/uploads/2026/07/logo-erika-.png'))
+        const resLogo = await fetch('/api/proxy-image?url=' + encodeURIComponent('/logo-erika.png'))
         if (resLogo.ok) {
           const data = await resLogo.json()
           setLogoBase64(data.dataUri)
         }
         
-        const resFirma = await fetch('/api/proxy-image?url=' + encodeURIComponent('https://erikarodriguezpsicologa.com/wp-content/uploads/2026/07/Diseno-sin-titulo.png'))
+        const resFirma = await fetch('/api/proxy-image?url=' + encodeURIComponent('/firma-erika.png'))
         if (resFirma.ok) {
           const data = await resFirma.json()
           setFirmaBase64(data.dataUri)

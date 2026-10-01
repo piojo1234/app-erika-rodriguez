@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabaseServer';
+import fs from 'fs';
+import path from 'path';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -10,6 +12,38 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // 1. Resolver firma de Erika localmente si coincide con la firma oficial
+    if (imageUrl.includes('Diseno-sin-titulo') || imageUrl.includes('firma-erika')) {
+      const filePath = path.join(process.cwd(), 'public', 'firma-erika.png');
+      if (fs.existsSync(filePath)) {
+        const fileBuffer = fs.readFileSync(filePath);
+        const dataUri = `data:image/png;base64,${fileBuffer.toString('base64')}`;
+        return NextResponse.json({ dataUri });
+      }
+    }
+
+    // 2. Resolver logo oficial de Erika localmente
+    if (imageUrl.includes('logo-erika')) {
+      const filePath = path.join(process.cwd(), 'public', 'logo-erika.png');
+      if (fs.existsSync(filePath)) {
+        const fileBuffer = fs.readFileSync(filePath);
+        const dataUri = `data:image/png;base64,${fileBuffer.toString('base64')}`;
+        return NextResponse.json({ dataUri });
+      }
+    }
+
+    // 3. Si es una ruta relativa local en /public/
+    if (imageUrl.startsWith('/')) {
+      const cleanPath = imageUrl.startsWith('/') ? imageUrl.slice(1) : imageUrl;
+      const filePath = path.join(process.cwd(), 'public', cleanPath);
+      if (fs.existsSync(filePath)) {
+        const fileBuffer = fs.readFileSync(filePath);
+        const ext = path.extname(filePath).replace('.', '') || 'png';
+        const dataUri = `data:image/${ext};base64,${fileBuffer.toString('base64')}`;
+        return NextResponse.json({ dataUri });
+      }
+    }
+
     if (imageUrl.includes('firmas-contratos')) {
       const parts = imageUrl.split('firmas-contratos/');
       const nombreArchivo = parts[parts.length - 1];

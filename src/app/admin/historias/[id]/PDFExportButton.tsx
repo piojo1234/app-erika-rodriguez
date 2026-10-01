@@ -41,8 +41,8 @@ export default function PDFExportButton({ historia, evoluciones }: PDFExportButt
     setGenerandoPDF(true)
     
     try {
-      const logoB64 = await getBase64ImageFromUrl('https://erikarodriguezpsicologa.com/wp-content/uploads/2026/07/logo-erika-.png')
-      const firmaB64 = await getBase64ImageFromUrl('https://erikarodriguezpsicologa.com/wp-content/uploads/2026/07/Diseno-sin-titulo.png')
+      const logoB64 = await getBase64ImageFromUrl('/logo-erika.png')
+      const firmaB64 = await getBase64ImageFromUrl('/firma-erika.png')
 
       setPdfData({ logoBase64: logoB64, firmaBase64: firmaB64 })
 

@@ -70,8 +70,8 @@ export default function DocumentosClient({ documentos }: DocumentosClientProps) 
     setGenerandoPDF(documento.id)
 
     try {
-      const logoB64 = await getBase64ImageFromUrl('https://erikarodriguezpsicologa.com/wp-content/uploads/2026/07/logo-erika-.png').catch(() => '')
-      const firmaB64 = await getBase64ImageFromUrl('https://erikarodriguezpsicologa.com/wp-content/uploads/2026/07/Diseno-sin-titulo.png').catch(() => '')
+      const logoB64 = await getBase64ImageFromUrl('/logo-erika.png').catch(() => '')
+      const firmaB64 = await getBase64ImageFromUrl('/firma-erika.png').catch(() => '')
 
       setPdfData({ documento, logoBase64: logoB64, firmaBase64: firmaB64 })
 
